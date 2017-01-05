@@ -66,9 +66,12 @@
 % something about CUDA with mex-files by looking at the .cu files.
 %
 % I think that one of the most complicated issues with GPU programming for
-% a beginner is to set up a correct environment. This is relatively well
-% documented on the web. In my case, I am using Linux and more particularly
-% Ubuntu 16.04. To use my codes and make comparisons with openMP, you will
+% a beginner is to set up a correct environment. This is well
+% documented on the web, however, most users (including me) will forget a key step/option and screw up their system. 
+% In my case, I am using Linux and more particularly
+% Ubuntu 16.04. 
+%
+% To use my codes and make comparisons with openMP, you will
 % first need to install the fftw library. You can skip this step if you
 % don't want to make comparisons. 
 %
@@ -80,26 +83,19 @@
 %  sudo make install 
 %
 % The next step is to install the CUDA drivers and toolboxes. Unfortunately,
-% this turned out to be complicated. The problem is that I had to use
-% the latest version of CUDA (CUDA 8.0), since there is no other choice for
-% Ubuntu 16.04 users. Matlab 2016b on its side (at the time I publish
-% this post) only accepts CUDA 7.5. _So, if you didn't upgrade Ubuntu yet,
-% stay on 14.04 if you intend using Matlab and CUDA._ I still managed to
-% compile my mex files with specific commands provided later.
+% this turned out to be complicated. One problem is that I decided to use
+% the latest version of CUDA (CUDA 8.0). Matlab 2016b on its side (at the time I publish
+% this post) only accepts CUDA 7.5. _So, if you don't have a NVIDIA PASCAL card,
+% try installing CUDA 7.5 instead if you intend using Matlab and CUDA._ I still managed to
+% compile my mex files with specific commands provided here: <https://github.com/pierre-weiss/VSNR_CUDA_MEX/blob/master/mex_all.m>.
 % 
 % After trying to install the .sh run file provided on NVIDIA's website, I
 % screwed my graphic's installation completely and it took me a long time
-% to restore my system. A much simpler and functional approach is to
-% install cuda using Synaptic. This is easily done in a terminal by typing: 
-% 
-% sudo synaptic 
-% 
-% Then install cuda-8.0, cuda-toolkit-8.0, cuda-runtime-8.0,
-% cuda-cublas-8.0.
+% to restore my system. I won't write another blog about how to install CUDA on Linux.
+% You can have a look there for instance: <http://kislayabhi.github.io/Installing_CUDA_with_Ubuntu/>,
+% for a serious presentation.
 %
-% _If you are on Ubuntu 14.04, you probably had better install the 7.5 version of
-% the above packages._
-
+%
 %% The denoising problem
 %
 % I will now describe the optimization problem I wish to solve. This is a problem that
@@ -127,7 +123,7 @@
 % it turns out that the ADMM is the most efficient. This is a well
 % documented approach, described here for instance <http://www.math.univ-toulouse.fr/~weiss/Publis/ICM_09-16.pdf> in the field of
 % imaging. It requires the use of Fast Fourier Transforms. The MATLAB code
-% is provided in function denoise_VSNR_ADMM2.m. You can have a look at it.
+% is provided in function <https://github.com/pierre-weiss/VSNR_CUDA_MEX/blob/master/denoise_VSNR_ADMM2.m>. You can have a look at it.
 % Observe that this is an ideal code for GPU since it is only made of
 % simple operations (additions, multiplications, FFTs,...) of images.
 % Before going further, let us show how the algorithm works. 
@@ -191,7 +187,7 @@ maxNumCompThreads(20);tic;u2=denoise_VSNR_ADMM2(u0,noise_level*psi,nit,beta);toc
 %% Timing mex-C code 
 % The next step is to see what happens with a C-mex file. I have
 % implemented one in 
-% VSNR_ADMM_2D.cpp. To compile it, run the following command after a clean
+% <https://github.com/pierre-weiss/VSNR_CUDA_MEX/blob/master/VSNR_ADMM_2D.cpp>. To compile it, run the following command after a clean
 % install of the fftw library. 
 %
 % mex '-L/usr/local/lib' -lfftw3_omp -lfftw3 -lm VSNR_ADMM_2D.cpp
@@ -230,6 +226,9 @@ gpsis=noise_level*gpuArray(single(psi));
 % * On the CPU: d1=zeros(size(u0)); 
 % * On the GPU: d1=gpuArray(single(zeros(size(u0)))); 
 %
+% You can compare the codes <https://github.com/pierre-weiss/VSNR_CUDA_MEX/blob/master/denoise_VSNR_ADMM_GPU_SINGLE.m> and <https://github.com/pierre-weiss/VSNR_CUDA_MEX/blob/master/denoise_VSNR_ADMM2.m> to see that nearly nothing has changed.
+%
+%
 % That takes less than 5 minutes to convert the code, which is great. Now
 % what about performance?
 disp('MATLAB GPU DOUBLE')
@@ -252,13 +251,13 @@ u6=real(gather(gu6));
 %
 % Let's now turn to the last test: a CUDA-C code interfaced with
 % Matlab using mex. The codes for single precision and double precision
-% are VSNR_ADMM_2D_GPU_SINGLE.cu and VSNR_ADMM_2D_GPU_DOUBLE.cu. Since I
+% are <https://github.com/pierre-weiss/VSNR_CUDA_MEX/blob/master/VSNR_ADMM_2D_GPU_SINGLE.cu> and <https://github.com/pierre-weiss/VSNR_CUDA_MEX/blob/master/VSNR_ADMM_2D_GPU_DOUBLE.cu>. Since I
 % use CUDA 8.0, which is not supported by Matlab yet, the compilation is 
 % complicated. You will find the commands I used for compilation in the
-% file mex_all.m. I found it - by chance - on the web. To launch VSNR on
+% file <https://github.com/pierre-weiss/VSNR_CUDA_MEX/blob/master/mex_all.m>. I found it - by chance - on the web. To launch VSNR on
 % the GPU, we need to specify the number of blocks and the number of
 % threads per blocks. 
-dimGrid=1024;dimBlock=2048;
+dimGrid=2048;dimBlock=2048;
 tic;gu7=VSNR_ADMM_2D_GPU_SINGLE(gu0s,gpsis,nit,beta,dimGrid,dimBlock);toc;time(7)=toc;
 u7=real(gather(gu7));
 
@@ -286,21 +285,21 @@ fprintf('7) Acceleration C GPU SINGLE: %3.2f\n',time(1)/time(7))
 Make_Table
 
 %%
-% The price indicated in the above table roughly corresponds to what I paid
+% The prices indicated in the above table roughly corresponds to what I paid
 % for my workstation. The development time corresponds to what I spent this
 % time, but you need to remember that it was my first try with CUDA. I
 % therefore had to learn a lot of things. I guess I would be much faster 
 % now that I have some experience. In any cases, I think it is a good
 % practice to do things in this order:
 %
-% * Program in Matlab or any other high-end language (_here 2 hours_).  
+% * Program in Matlab or any other high-level language (_here 2 hours_).  
 % * Program in C (_here 5 hours_). 
 % * Add OpenMP support (_here 20'_).
 % * Program in CUDA (_here 4 days_). This last step could probably be reduced
 % to - say - 5 hours with more experience. 
 %
 % If you follow this order (which seems good to me), you see that the
-% difference from a simple Matlab code (2 hours) to a CUDA C-code (at best 11 hours) is
+% difference from a simple Matlab code (1 hours) to a CUDA C-code (at best 11 hours) is
 % huge. Using the much simpler Matlab GPU
 % programming is therefore a good alternative to my point of view, though
 % it is about 7 times slowlier at runtime. 
