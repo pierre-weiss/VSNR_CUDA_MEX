@@ -129,6 +129,7 @@
 % Before going further, let us show how the algorithm works. 
 % 
 % We first create a synthetic image $u$. 
+close all;
 n0=512;
 n1=512;
 [X,Y]=meshgrid(linspace(-1,1,n0),linspace(-1,1,n1));
@@ -292,7 +293,7 @@ Make_Table
 % now that I have some experience. In any cases, I think it is a good
 % practice to do things in this order:
 %
-% * Program in Matlab or any other high-level language (_here 2 hours_).  
+% * Program in Matlab or any other high-level language (_here 1 hour_).  
 % * Program in C (_here 5 hours_). 
 % * Add OpenMP support (_here 20'_).
 % * Program in CUDA (_here 4 days_). This last step could probably be reduced
