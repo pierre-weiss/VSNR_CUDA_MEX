@@ -24,10 +24,7 @@ end
 function mex_all_compile()
 
 % clean
-delete VSNR_ADMM_2D_GPU_TEST.mex*
-
-files = {'VSNR_ADMM_2D_GPU_DOUBLE'};
-%files = {'VSNR_ADMM_2D_GPU_DOUBLE'};
+files = {'VSNR_ADMM_2D_GPU_SINGLE','VSNR_ADMM_2D_GPU_DOUBLE'};
 
 for k = 1:numel(files)
     cmd1 = ['/usr/local/cuda-8.0/bin/nvcc -c --compiler-options=-D_GNU_SOURCE,-DMATLAB_MEX_FILE' ...
@@ -58,6 +55,5 @@ for k = 1:numel(files)
     if system(cmd2); error('%s failed step 2',files{k}); end
     if system(cmd3); error('%s failed step 3',files{k}); end
     disp('MEX completed successfully.')
-    
 end
 

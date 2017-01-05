@@ -59,6 +59,12 @@
 
 %% Setting up the environment
 %
+% The programs I used for comparisons are provided here: 
+% <https://github.com/pierre-weiss/VSNR_CUDA_MEX>
+%
+% You'll find all the functions in this toolbox and you might learn
+% something about CUDA with mex-files by looking at the .cu files.
+%
 % I think that one of the most complicated issues with GPU programming for
 % a beginner is to set up a correct environment. This is relatively well
 % documented on the web. In my case, I am using Linux and more particularly

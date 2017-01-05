@@ -346,3 +346,70 @@ void VSNR_ADMM_GPU(float *u0,float *psi, int n0, int n1,int nit,float beta,float
     cufftDestroy(plan_R2C);
     cufftDestroy(plan_C2R);
 }
+
+// Entry point for Matlab
+void mexFunction( int nlhs, mxArray *plhs[], int nrhs, const mxArray *prhs[]) {
+    // Ouput : u
+    // Input : u0, psi, nit, beta, dimGird, dimBlock
+    
+    int n0,n1,nit,dimGrid,dimBlock;
+    float beta;
+    mwSize const *dim;
+    mxGPUArray *gu0,*gpsi;
+    float *u0,*psi;
+    mxGPUArray *gu;
+    float *u;
+    char const * const errId = "parallel:gpu:VSNR_ADMM_2D_GPU_SINGLE:InvalidInput";
+    char const * const errMsg = "Invalid input to MEX file. Should be SINGLE gpuArray.";
+    
+    // Initialize the MathWorks GPU API.
+    mxInitGPU();
+    
+    // Check for proper input
+    switch(nrhs) {
+        case 6 : /*mexPrintf("Good call.\n");*/
+            break;
+        default: mexErrMsgTxt("Bad number of inputs.\n");
+        break;
+    }
+    if (nlhs > 1) {mexErrMsgTxt("Too many outputs.\n");}
+    
+    if (!(mxIsGPUArray(prhs[0]))) mexErrMsgIdAndTxt(errId, errMsg);
+    if (!(mxIsGPUArray(prhs[1]))) mexErrMsgIdAndTxt(errId, errMsg);
+    
+    // Get input arguments
+    gu0 = mxGPUCopyFromMxArray(prhs[0]); // Here I would prefer using mxGPUCreateFromMxArray to avoid a copy, but this leads to new complications: I get a const * that messes up all subsequent functions
+    gpsi= mxGPUCopyFromMxArray(prhs[1]);
+    nit=(int)*mxGetPr(prhs[2]);
+    beta=*mxGetPr(prhs[3]);
+    dimGrid=(int)*mxGetPr(prhs[4]);
+    dimBlock=(int)*mxGetPr(prhs[5]);
+    
+    // Note that n0 and n1 are reversed because of row major in C VS column major format in Matlab
+    dim = mxGPUGetDimensions(gu0);
+    n1=dim[0]; //number of rows
+    n0=dim[1]; //number of columns
+    
+    if (mxGPUGetClassID(gu0) != mxSINGLE_CLASS) mexErrMsgIdAndTxt(errId, errMsg);
+    if (mxGPUGetClassID(gpsi) != mxSINGLE_CLASS) mexErrMsgIdAndTxt(errId, errMsg);
+    u0 = (float *)(mxGPUGetData(gu0));
+    psi = (float *)(mxGPUGetData(gpsi));
+    
+    /* Create a GPUArray to hold the result and get its underlying pointer. */
+    gu = mxGPUCreateGPUArray(mxGPUGetNumberOfDimensions(gu0),
+            mxGPUGetDimensions(gu0),
+            mxGPUGetClassID(gu0),
+            mxGPUGetComplexity(gu0),
+            MX_GPU_DO_NOT_INITIALIZE);
+    u = (float *)(mxGPUGetData(gu));
+    
+    // Main function
+    VSNR_ADMM_GPU(u0,psi,n0,n1,nit,beta,u,dimGrid,dimBlock);
+    
+    // Wrap the result up as a MATLAB gpuArray for return.
+    plhs[0] = mxGPUCreateMxArrayOnGPU(gu);
+    
+    // Destroys the copies
+    mxGPUDestroyGPUArray(gu0);
+    mxGPUDestroyGPUArray(gpsi);
+}
